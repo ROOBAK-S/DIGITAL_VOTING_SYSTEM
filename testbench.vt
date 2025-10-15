@@ -1,0 +1,115 @@
+`timescale 1ns / 1ps
+
+module testbench;
+
+    reg master_clk;
+    reg reset;
+    reg [7:0] voter_id_input;
+    reg [3:0] candidate_selection;
+    reg submit_vote;
+    reg authenticate_voter;
+    reg display_results_request;
+    reg system_enable;
+
+    wire [7:0] system_status;
+    wire [7:0] current_voter_id;
+    wire [3:0] current_candidate;
+    wire vote_accepted;
+    wire vote_rejected;
+    wire system_ready;
+    wire [15:0] total_votes_cast;
+    wire [3:0] winning_candidate_id;
+    wire [15:0] winning_candidate_votes;
+    wire results_available;
+    wire [7:0] error_code;
+
+    // Instantiate DUT
+    digital_voting_system_top dut (
+        .master_clk(master_clk),
+        .reset(reset),
+        .voter_id_input(voter_id_input),
+        .candidate_selection(candidate_selection),
+        .submit_vote(submit_vote),
+        .authenticate_voter(authenticate_voter),
+        .display_results_request(display_results_request),
+        .system_enable(system_enable),
+        .system_status(system_status),
+        .current_voter_id(current_voter_id),
+        .current_candidate(current_candidate),
+        .vote_accepted(vote_accepted),
+        .vote_rejected(vote_rejected),
+        .system_ready(system_ready),
+        .total_votes_cast(total_votes_cast),
+        .winning_candidate_id(winning_candidate_id),
+        .winning_candidate_votes(winning_candidate_votes),
+        .results_available(results_available),
+        .error_code(error_code)
+    );
+
+    // Clock generation: 100 MHz
+    initial begin
+        master_clk = 0;
+        forever #5 master_clk = ~master_clk;
+    end
+
+    initial begin
+        // Initial conditions
+        reset = 1;
+        system_enable = 0;
+        voter_id_input = 0;
+        candidate_selection = 0;
+        submit_vote = 0;
+        authenticate_voter = 0;
+        display_results_request = 0;
+
+        // System reset for 100 ns
+        #100;
+        reset = 0;
+        system_enable = 1; // Make system ACTIVE
+
+        // Wait for system_ready
+        wait(system_ready);
+
+        // VOTER 1: 0x10 votes for candidate 0
+        voter_id_input = 8'h10; // Voter 0x10
+        authenticate_voter = 1; #10; authenticate_voter = 0; #20;
+        candidate_selection = 4'd0;
+        submit_vote = 1; #10; submit_vote = 0; #30;
+
+        // VOTER 2: 0x11 votes for candidate 1
+        voter_id_input = 8'h11; authenticate_voter = 1; #10; authenticate_voter = 0; #20;
+        candidate_selection = 4'd1;
+        submit_vote = 1; #10; submit_vote = 0; #30;
+
+        // VOTER 3: 0x12 votes for candidate 2
+        voter_id_input = 8'h12; authenticate_voter = 1; #10; authenticate_voter = 0; #20;
+        candidate_selection = 4'd2;
+        submit_vote = 1; #10; submit_vote = 0; #30;
+
+        // VOTER 4: 0x13 votes for candidate 3
+        voter_id_input = 8'h13; authenticate_voter = 1; #10; authenticate_voter = 0; #20;
+        candidate_selection = 4'd3;
+        submit_vote = 1; #10; submit_vote = 0; #30;
+
+        // REQUEST AND SHOW RESULTS
+        display_results_request = 1; #10; display_results_request = 0;
+        wait(results_available);
+
+        // Display results in simulation console
+        $display("=== FINAL VOTING RESULTS ===");
+        $display("Total votes: %d", total_votes_cast);
+        $display("Winning candidate: %d", winning_candidate_id);
+        $display("Votes received by winner: %d", winning_candidate_votes);
+
+        #50;
+        $finish;
+    end
+
+    // Monitor signals
+    initial begin
+        $monitor("T=%0t ns | ready=%b | accepted=%b | rejected=%b | error=%h | voter=%h | cand=%h | total=%d | win_cand=%d | win_vote=%d",
+                 $time, system_ready, vote_accepted, vote_rejected, error_code, current_voter_id, current_candidate,
+                 total_votes_cast, winning_candidate_id, winning_candidate_votes);
+    end
+
+endmodule
