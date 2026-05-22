@@ -1,0 +1,103 @@
+`timescale 1ns / 1ps
+
+module tb_voting_machine;
+
+reg clk;
+reg rst;
+
+reg voter1;
+reg voter2;
+reg voter3;
+reg voter4;
+
+reg cast_vote;
+
+wire [3:0] candidate1_votes;
+wire [3:0] candidate2_votes;
+wire [3:0] candidate3_votes;
+wire [3:0] candidate4_votes;
+
+wire invalid_vote;
+
+voting_machine uut(
+    .clk(clk),
+    .rst(rst),
+
+    .voter1(voter1),
+    .voter2(voter2),
+    .voter3(voter3),
+    .voter4(voter4),
+
+    .cast_vote(cast_vote),
+
+    .candidate1_votes(candidate1_votes),
+    .candidate2_votes(candidate2_votes),
+    .candidate3_votes(candidate3_votes),
+    .candidate4_votes(candidate4_votes),
+
+    .invalid_vote(invalid_vote)
+);
+
+initial
+begin
+    clk = 0;
+    forever #5 clk = ~clk;
+end
+
+initial
+begin
+
+    rst = 0;
+    voter1 = 0;
+    voter2 = 0;
+    voter3 = 0;
+    voter4 = 0;
+    cast_vote = 0;
+
+    #10;
+    rst = 1;
+
+    // vote candidate 1
+    #10;
+    voter1 = 1;
+    cast_vote = 1;
+
+    #10;
+    cast_vote = 0;
+    voter1 = 0;
+
+    // vote candidate 2
+    #10;
+    voter2 = 1;
+    cast_vote = 1;
+
+    #10;
+    cast_vote = 0;
+    voter2 = 0;
+
+    // invalid vote
+    #10;
+    voter1 = 1;
+    voter2 = 1;
+    cast_vote = 1;
+
+    #10;
+    cast_vote = 0;
+    voter1 = 0;
+    voter2 = 0;
+
+    // vote candidate 4
+    #10;
+    voter4 = 1;
+    cast_vote = 1;
+
+    #10;
+    cast_vote = 0;
+    voter4 = 0;
+
+    #50;
+    $finish;
+
+end
+
+endmodule
